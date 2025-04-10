@@ -97,7 +97,7 @@ export default function Home() {
                 <Textarea
                   readOnly
                   value={recipe.instructions}
-                  className="mt-2 min-h-[100px] resize-none"
+                  className="mt-2 min-h-[200px] resize-none"
                 />
               </div>
             </CardContent>
@@ -107,4 +107,3 @@ export default function Home() {
     </div>
   );
 }
-
