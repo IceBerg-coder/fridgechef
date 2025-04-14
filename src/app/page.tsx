@@ -36,7 +36,14 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      const result = await generateRecipe({ ingredients });
+      // Convert the comma-separated string to an array
+      const ingredientsArray = ingredients.split(',').map(item => item.trim()).filter(Boolean);
+      
+      // Pass the ingredients array to the generateRecipe function
+      const result = await generateRecipe({ 
+        ingredients: ingredientsArray
+      });
+      
       // Enhance the recipe with additional fields for better UI display
       setRecipe({
         ...result,
