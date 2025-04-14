@@ -22,12 +22,24 @@ const RefineRecipeOutputSchema = z.object({
 export type RefineRecipeOutput = z.infer<typeof RefineRecipeOutputSchema>;
 
 export async function improveRecipe(input: RefineRecipeInput): Promise<RefineRecipeOutput> {
-  return refineRecipeFlow(input);
+  try {
+    // Log API key availability (sanitized for security)
+    const apiKeyAvailable = Boolean(
+      process.env.GOOGLE_GENAI_API_KEY || 
+      process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY
+    );
+    console.log(`Recipe improvement - API key available: ${apiKeyAvailable}`);
+    
+    return await refineRecipeFlow(input);
+  } catch (error) {
+    console.error("Recipe improvement error:", error);
+    throw new Error(`Failed to improve recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 // Keeping the original function for backward compatibility
 export async function refineRecipe(input: RefineRecipeInput): Promise<RefineRecipeOutput> {
-  return refineRecipeFlow(input);
+  return improveRecipe(input);
 }
 
 const prompt = ai.definePrompt({
