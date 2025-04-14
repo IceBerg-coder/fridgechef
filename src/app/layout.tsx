@@ -6,6 +6,7 @@ import { Footer } from '@/components/ui/footer';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SessionProvider } from "@/components/auth/session-provider";
+import { GitHubPagesAdapter } from "@/components/github-pages-adapter";
 
 // Load Inter font for body text
 const inter = Inter({
@@ -41,6 +42,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SessionProvider>
+            <GitHubPagesAdapter />
             <Navigation />
             <main className="flex-grow w-full">
               {children}

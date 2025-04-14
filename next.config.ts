@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  output: 'export',
+  // For deployment to GitHub Pages, set the basePath to match your repository name
+  // For example if your repo is username/fridgechef, use:
+  basePath: process.env.NODE_ENV === 'production' ? '/fridgechef' : '',
+  // Required for GitHub Pages
+  images: {
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,16 +22,13 @@ const nextConfig = {
   },
   // Enhanced configuration for Server Actions in GitHub Codespaces
   experimental: {
-    serverActions: {
-      allowedOrigins: [
-        'localhost:9002',
-        // Convert RegExp to string patterns
-        'https://*-9002.app.github.dev',
-        'https://*-9002.preview.app.github.dev',
-        // Accept all origins in development
-        ...(process.env.NODE_ENV === 'development' ? ['*'] : []),
-      ],
-    }
+    serverActions: false, // Disable server actions for static export
+  },
+  // Ensure dynamic routes are generated as static pages
+  trailingSlash: true,
+  // Add redirects and rewrites that work with static export
+  async rewrites() {
+    return [];
   },
 };
 
