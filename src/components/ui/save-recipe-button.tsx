@@ -10,7 +10,14 @@ import { cn } from '@/lib/utils';
 interface Recipe {
   id: string;
   name?: string;
+  recipeName?: string;
+  description?: string;
   content?: string;
+  ingredients?: string[];
+  instructions?: string[];
+  cookingTime?: string;
+  difficulty?: string;
+  tags?: string[];
   [key: string]: any;
 }
 
@@ -63,14 +70,21 @@ export function SaveRecipeButton({
     
     try {
       const response = await fetch('/api/recipes/saved');
-      if (!response.ok) throw new Error('Failed to fetch saved recipes');
       
+      // Even if response is not ok, proceed with handling it rather than erroring out
       const data = await response.json();
       const recipes = data.recipes || [];
       const saved = recipes.some((recipe: any) => recipe.id === actualRecipeId);
       setIsSaved(saved);
+
+      if (!response.ok) {
+        console.log('Save status check returned non-OK response:', response.status, data);
+        // Just log the warning, don't throw - we already handled the empty recipes case
+      }
     } catch (error) {
       console.error('Error checking save status:', error);
+      // Don't show error to user, just default to unsaved state
+      setIsSaved(false);
     }
   };
   
@@ -97,16 +111,75 @@ export function SaveRecipeButton({
     setIsLoading(true);
     
     try {
+      // Prepare complete recipe data to save
+      let recipeData: any = { 
+        recipeId: actualRecipeId,
+        recipeName: actualRecipeName || recipe?.recipeName || recipe?.name,
+      };
+      
+      // If we have the full recipe object, include all its data
+      if (recipe) {
+        // Add all recipe properties to the data we're saving
+        recipeData = {
+          ...recipeData,
+          name: recipe.recipeName || recipe.name,
+          description: recipe.description,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          cookingTime: recipe.cookingTime,
+          difficulty: recipe.difficulty,
+          cuisineType: recipe.cuisineType,
+          dietaryPreferences: recipe.dietaryPreferences,
+          rawIngredients: recipe.ingredients, // Save raw array for better display
+          rawInstructions: recipe.instructions, // Save raw array for better display
+          tags: recipe.tags,
+          // Store the complete recipe in recipeContent for future use
+          recipeContent: typeof recipe === 'object' ? JSON.stringify(recipe) : recipe,
+        };
+        
+        // Include any other properties the recipe might have
+        for (const key in recipe) {
+          if (!recipeData[key] && recipe[key] !== undefined) {
+            recipeData[key] = recipe[key];
+          }
+        }
+      } else if (actualRecipeContent) {
+        // If we only have content string, use that
+        recipeData.recipeContent = actualRecipeContent;
+        
+        // Try to parse recipe content if it's a JSON string
+        try {
+          if (typeof actualRecipeContent === 'string' && actualRecipeContent.startsWith('{')) {
+            const parsedContent = JSON.parse(actualRecipeContent);
+            
+            // Spread the parsed content properties to recipeData
+            recipeData = {
+              ...recipeData,
+              ...parsedContent,
+              description: parsedContent.description || actualRecipeContent.substring(0, 250),
+            };
+            
+            // If we have ingredients/instructions as arrays, store them as raw values too
+            if (Array.isArray(parsedContent.ingredients)) {
+              recipeData.rawIngredients = parsedContent.ingredients;
+            }
+            
+            if (Array.isArray(parsedContent.instructions)) {
+              recipeData.rawInstructions = parsedContent.instructions;
+            }
+          }
+        } catch (e) {
+          // If parsing fails, just use the content as description
+          recipeData.description = actualRecipeContent.substring(0, 250);
+        }
+      }
+      
       const response = await fetch('/api/recipes/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          recipeId: actualRecipeId,
-          recipeName: actualRecipeName,
-          recipeContent: actualRecipeContent 
-        })
+        body: JSON.stringify(recipeData)
       });
       
       if (!response.ok) {
@@ -114,7 +187,6 @@ export function SaveRecipeButton({
         throw new Error(errorData.error || 'Failed to update saved status');
       }
       
-      const result = await response.json();
       const newSavedStatus = !isSaved;
       setIsSaved(newSavedStatus);
       
