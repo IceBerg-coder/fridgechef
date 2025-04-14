@@ -5,6 +5,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Use SQLite for local development and PostgreSQL for Vercel deployment
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
