@@ -6,7 +6,8 @@ import { Footer } from '@/components/ui/footer';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SessionProvider } from "@/components/auth/session-provider";
-import { GitHubPagesAdapter } from "@/components/github-pages-adapter";
+import { GitHubPagesAdapter } from '@/components/github-pages-adapter';
+import { VercelAdapter } from "@/components/vercel-adapter";
 
 // Load Inter font for body text
 const inter = Inter({
@@ -43,6 +44,7 @@ export default function RootLayout({
         >
           <SessionProvider>
             <GitHubPagesAdapter />
+            <VercelAdapter />
             <Navigation />
             <main className="flex-grow w-full">
               {children}

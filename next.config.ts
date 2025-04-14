@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  // For deployment to GitHub Pages, set the basePath to match your repository name
-  // For example if your repo is username/fridgechef, use:
-  basePath: process.env.NODE_ENV === 'production' ? '/fridgechef' : '',
-  // Required for GitHub Pages
+  // Remove output: 'export' for Vercel deployment to enable server features
+  // output: 'export',
+  
+  // Remove basePath for Vercel deployment
+  // basePath: process.env.NODE_ENV === 'production' ? '/fridgechef' : '',
+  
   images: {
-    unoptimized: true,
+    // Remove unoptimized: true as Vercel handles image optimization
+    // unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -20,13 +22,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Enhanced configuration for Server Actions in GitHub Codespaces
+  // Enable server actions for Vercel deployment
   experimental: {
-    serverActions: false, // Disable server actions for static export
+    serverActions: true, // Enable server actions for Vercel
   },
-  // Ensure dynamic routes are generated as static pages
-  trailingSlash: true,
-  // Add redirects and rewrites that work with static export
+  // Remove trailingSlash setting which is for static exports
+  // trailingSlash: true,
+  
+  // Add redirects and rewrites that work with Vercel
   async rewrites() {
     return [];
   },
