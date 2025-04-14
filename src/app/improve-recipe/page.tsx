@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { improveRecipe } from '@/ai/flows/improve-recipe';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +15,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
-export default function ImproveRecipePage() {
+// Separate component that uses useSearchParams
+function RecipeImprover() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -332,5 +333,19 @@ export default function ImproveRecipePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Main component with Suspense boundary
+export default function ImproveRecipePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Loading recipe enhancer...</p>
+      </div>
+    }>
+      <RecipeImprover />
+    </Suspense>
   );
 }
