@@ -28,12 +28,39 @@ export async function generateRecipe({
   dietaryPreferences,
   allergies,
 }: {
-  ingredients: string[];
+  ingredients: string | string[];
   additionalRequirements?: string;
   dietaryPreferences?: string;
   allergies?: string;
 }) {
   try {
+    console.log("Starting recipe generation...");
+    
+    // Normalize ingredients to handle both string and array inputs
+    let ingredientsArray: string[] = [];
+    
+    if (typeof ingredients === 'string') {
+      // If ingredients is a string, split it by commas into an array
+      ingredientsArray = ingredients
+        .split(',')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+      console.log(`Ingredients received as string, converted to array with ${ingredientsArray.length} items`);
+    } else if (Array.isArray(ingredients)) {
+      // If ingredients is already an array, use it directly
+      ingredientsArray = ingredients;
+      console.log(`Ingredients received as array with ${ingredientsArray.length} items`);
+    } else {
+      // Handle invalid input
+      console.error("Invalid ingredients format:", ingredients);
+      throw new Error("Ingredients must be provided as a string or array");
+    }
+    
+    if (ingredientsArray.length === 0) {
+      console.error("No ingredients provided for recipe generation");
+      return createFallbackRecipe("basic ingredients");
+    }
+    
     // Log API key availability (sanitized for security)
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY;
     const envSource = apiKey ? (process.env.GOOGLE_GENAI_API_KEY ? 'server env' : 'client env') : 'none';
@@ -47,11 +74,11 @@ export async function generateRecipe({
     
     if (!apiKey) {
       console.warn('No AI API key available for recipe generation');
-      return createFallbackRecipe(ingredients.join(', '));
+      return createFallbackRecipe(ingredientsArray.join(', '));
     }
 
     // Create a comprehensive ingredients string with all requirements
-    let ingredientsWithRequirements = ingredients.join(', ');
+    let ingredientsWithRequirements = ingredientsArray.join(', ');
     
     if (dietaryPreferences) {
       ingredientsWithRequirements += `\nDietary preferences: ${dietaryPreferences}`;
@@ -74,18 +101,18 @@ export async function generateRecipe({
       // Create a more complete response that includes the additional fields expected by the application
       return {
         ...result,
-        description: `A delicious recipe using ${ingredients.join(', ')}`,
+        description: `A delicious recipe using ${ingredientsArray.join(', ')}`,
         cookingTime: "30 minutes",
         servings: 4,
         difficulty: "medium"
       };
     } catch (flowError) {
       console.error("Recipe flow execution error:", flowError);
-      return createFallbackRecipe(ingredients.join(', '));
+      return createFallbackRecipe(ingredientsArray.join(', '));
     }
   } catch (error) {
     console.error("Recipe generation error:", error);
-    return createFallbackRecipe(ingredients.join(', '));
+    return createFallbackRecipe(typeof ingredients === 'string' ? ingredients : ingredients.join(', '));
   }
 }
 
