@@ -283,7 +283,7 @@ export const combinedRecipeGenerator = async (options: {
   additionalNotes?: string;
 }): Promise<CombinedRecipeOutput> => {
   try {
-    console.log("Recipe generation starting...");
+    console.log(`Recipe generation starting... Mode: ${options.mode}, Count: ${options.count || 'not specified'}`);
     
     // Normalize ingredients to handle both string and array inputs
     let ingredientsString: string;
@@ -314,38 +314,57 @@ export const combinedRecipeGenerator = async (options: {
     
     if (!apiKey) {
       console.error("API key is missing for recipe generation");
-      return generateFallbackRecipe(ingredientsString);
+      return generateFallbackRecipe(ingredientsString, options.mode, options.count || 3);
     }
     
     if (!ingredientsString.trim()) {
       console.error("No ingredients provided for recipe generation");
-      return generateFallbackRecipe("basic ingredients");
+      return generateFallbackRecipe("basic ingredients", options.mode, options.count || 3);
     }
+    
+    // Ensure count is a valid number between 1 and 5
+    const recipeCount = options.mode === 'multiple' 
+      ? Math.min(Math.max(options.count || 3, 1), 5)
+      : 1;
+      
+    console.log(`Final recipe count to generate: ${recipeCount}`);
     
     try {
       // Call the flow with the normalized ingredients string
-      return await combinedRecipeGeneratorFlow({
+      const result = await combinedRecipeGeneratorFlow({
         ingredients: ingredientsString,
         mode: options.mode,
-        count: options.count || 3,
+        count: recipeCount,
         dietaryPreferences: options.dietaryPreferences,
         cuisineType: options.cuisineType,
         difficultyLevel: options.difficultyLevel,
         additionalNotes: options.additionalNotes,
       });
+      
+      // Validate the result has at least one recipe
+      if (!result.recipes || result.recipes.length === 0) {
+        console.error('Flow returned empty recipes array');
+        return generateFallbackRecipe(ingredientsString, options.mode, recipeCount);
+      }
+      
+      return result;
+      
     } catch (flowError: any) {
       console.error('Flow execution error:', flowError);
       
       // Always use fallback in case of errors
-      return generateFallbackRecipe(ingredientsString);
+      return generateFallbackRecipe(ingredientsString, options.mode, recipeCount);
     }
   } catch (error: any) {
     // Catch-all error handler
     console.error('Error generating recipes:', error);
-    return generateFallbackRecipe(typeof options.ingredients === 'string' ? 
-      options.ingredients : 
+    return generateFallbackRecipe(
+      typeof options.ingredients === 'string' ? options.ingredients : 
       Array.isArray(options.ingredients) ? options.ingredients.join(', ') : 
-      "available ingredients");
+      "available ingredients",
+      options.mode,
+      options.count || 3
+    );
   }
 };
 
@@ -353,33 +372,77 @@ export const combinedRecipeGenerator = async (options: {
  * Generate a simple fallback recipe when the AI generation fails
  * This ensures users always get something usable even when the AI service has issues
  */
-function generateFallbackRecipe(ingredients: string): CombinedRecipeOutput {
-  const firstIngredient = ingredients.split(',')[0].trim();
+function generateFallbackRecipe(ingredients: string, mode: 'single' | 'multiple' = 'single', count: number = 1): CombinedRecipeOutput {
+  const ingredientsList = ingredients.split(',')
+    .map(i => i.trim())
+    .filter(i => i.length > 0);
   
-  return {
-    recipes: [{
-      recipeName: `Simple Recipe with ${firstIngredient}`,
-      description: "A quick and easy recipe using your available ingredients.",
-      cookingTime: "25 minutes",
-      difficulty: "Easy",
-      ingredients: [
-        firstIngredient,
-        "1 tablespoon olive oil",
-        "1 clove garlic, minced",
-        "Salt and pepper to taste",
-        ...ingredients.split(',')
-          .slice(1, 5)
-          .map(i => i.trim())
-          .filter(i => i.length > 0)
-      ],
-      instructions: [
-        `Prepare ${firstIngredient} by washing and cutting into appropriate pieces.`,
-        "Heat olive oil in a pan over medium heat.",
-        "Add garlic and sauté until fragrant, about 30 seconds.",
-        `Add ${firstIngredient} and cook until done.`,
-        "Season with salt and pepper to taste.",
-        "Serve immediately."
-      ]
-    }]
-  };
+  const firstIngredient = ingredientsList[0] || "basic ingredients";
+  
+  if (mode === 'single') {
+    return {
+      recipes: [{
+        recipeName: `Simple Recipe with ${firstIngredient}`,
+        description: "A quick and easy recipe using your available ingredients.",
+        cookingTime: "25 minutes",
+        difficulty: "Easy",
+        ingredients: [
+          firstIngredient,
+          "1 tablespoon olive oil",
+          "1 clove garlic, minced",
+          "Salt and pepper to taste",
+          ...ingredientsList.slice(1, 5)
+        ],
+        instructions: [
+          `Prepare ${firstIngredient} by washing and cutting into appropriate pieces.`,
+          "Heat olive oil in a pan over medium heat.",
+          "Add garlic and sauté until fragrant, about 30 seconds.",
+          `Add ${firstIngredient} and cook until done.`,
+          "Season with salt and pepper to taste.",
+          "Serve immediately."
+        ]
+      }]
+    };
+  } else {
+    // Generate multiple fallback recipes
+    const recipeCount = Math.min(count, 5);
+    const recipes = [];
+    
+    const recipeTypes = [
+      { name: 'Sauté', method: 'sautéed' },
+      { name: 'Roast', method: 'roasted' },
+      { name: 'Stir Fry', method: 'stir-fried' },
+      { name: 'Bake', method: 'baked' },
+      { name: 'Grill', method: 'grilled' }
+    ];
+    
+    for (let i = 0; i < recipeCount; i++) {
+      const recipeType = recipeTypes[i % recipeTypes.length];
+      
+      recipes.push({
+        recipeName: `${recipeType.name}ed ${firstIngredient} Recipe`,
+        description: `A simple ${recipeType.method} recipe using your available ingredients.`,
+        cookingTime: `${20 + i * 5} minutes`,
+        difficulty: i > 2 ? "Medium" : "Easy",
+        ingredients: [
+          firstIngredient,
+          "1-2 tablespoons olive oil",
+          "2 cloves garlic, minced",
+          "1 onion, chopped",
+          "Salt and pepper to taste",
+          ...ingredientsList.slice(1, 3 + i % 3)
+        ],
+        instructions: [
+          `Prepare ${firstIngredient} by washing and cutting into appropriate pieces.`,
+          "Heat olive oil in a pan over medium heat.",
+          "Add garlic and onion, cook until translucent.",
+          `Add ${firstIngredient} and ${recipeType.method === 'stir-fried' ? 'stir fry' : recipeType.name.toLowerCase()} until done.`,
+          `${i % 2 === 0 ? 'Add herbs and spices of your choice.' : 'Season generously with salt and pepper.'}`,
+          "Serve hot and enjoy!"
+        ]
+      });
+    }
+    
+    return { recipes };
+  }
 }
