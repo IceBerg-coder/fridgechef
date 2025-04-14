@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Generates a single recipe based on a list of ingredients.
@@ -23,8 +22,62 @@ const GenerateRecipeOutputSchema = z.object({
 });
 export type GenerateRecipeOutput = z.infer<typeof GenerateRecipeOutputSchema>;
 
-export async function generateRecipe(input: GenerateRecipeInput): Promise<GenerateRecipeOutput> {
-  return generateRecipeFlow(input);
+export async function generateRecipe({
+  ingredients,
+  additionalRequirements,
+  dietaryPreferences,
+  allergies,
+}: {
+  ingredients: string[];
+  additionalRequirements?: string;
+  dietaryPreferences?: string;
+  allergies?: string;
+}) {
+  try {
+    // Log API key availability (sanitized for security)
+    const apiKeyAvailable = Boolean(
+      process.env.GOOGLE_GENAI_API_KEY || 
+      process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY
+    );
+    console.log(`API key available: ${apiKeyAvailable}`);
+
+    // Create a comprehensive prompt combining all inputs
+    let fullPrompt = `Create a delicious recipe using these ingredients: ${ingredients.join(', ')}`;
+    
+    if (dietaryPreferences) {
+      fullPrompt += `\nFollow these dietary preferences: ${dietaryPreferences}`;
+    }
+    
+    if (allergies) {
+      fullPrompt += `\nAvoid these allergens: ${allergies}`;
+    }
+    
+    if (additionalRequirements) {
+      fullPrompt += `\nAdditional requirements: ${additionalRequirements}`;
+    }
+
+    // Call the AI to generate the recipe
+    const response = await ai.chat({
+      prompt: fullPrompt,
+      format: {
+        recipeName: "string",
+        description: "string",
+        ingredients: ["string"],
+        instructions: ["string"],
+        cookingTime: "string",
+        servings: "number",
+        difficulty: "string",
+      },
+      options: {
+        temperature: 0.8,
+      }
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Recipe generation error:", error);
+    throw new Error(`Failed to generate recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
