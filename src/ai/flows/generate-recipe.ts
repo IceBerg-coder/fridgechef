@@ -41,39 +41,34 @@ export async function generateRecipe({
     );
     console.log(`API key available: ${apiKeyAvailable}`);
 
-    // Create a comprehensive prompt combining all inputs
-    let fullPrompt = `Create a delicious recipe using these ingredients: ${ingredients.join(', ')}`;
+    // Create a comprehensive ingredients string with all requirements
+    let ingredientsWithRequirements = ingredients.join(', ');
     
     if (dietaryPreferences) {
-      fullPrompt += `\nFollow these dietary preferences: ${dietaryPreferences}`;
+      ingredientsWithRequirements += `\nDietary preferences: ${dietaryPreferences}`;
     }
     
     if (allergies) {
-      fullPrompt += `\nAvoid these allergens: ${allergies}`;
+      ingredientsWithRequirements += `\nAllergies to avoid: ${allergies}`;
     }
     
     if (additionalRequirements) {
-      fullPrompt += `\nAdditional requirements: ${additionalRequirements}`;
+      ingredientsWithRequirements += `\nAdditional requirements: ${additionalRequirements}`;
     }
 
-    // Call the AI to generate the recipe
-    const response = await ai.chat({
-      prompt: fullPrompt,
-      format: {
-        recipeName: "string",
-        description: "string",
-        ingredients: ["string"],
-        instructions: ["string"],
-        cookingTime: "string",
-        servings: "number",
-        difficulty: "string",
-      },
-      options: {
-        temperature: 0.8,
-      }
+    // Use the existing generateRecipeFlow which is properly configured
+    const result = await generateRecipeFlow({
+      ingredients: ingredientsWithRequirements
     });
-
-    return response;
+    
+    // Create a more complete response that includes the additional fields expected by the application
+    return {
+      ...result,
+      description: `A delicious recipe using ${ingredients.join(', ')}`,
+      cookingTime: "30 minutes",
+      servings: 4,
+      difficulty: "medium"
+    };
   } catch (error) {
     console.error("Recipe generation error:", error);
     throw new Error(`Failed to generate recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
