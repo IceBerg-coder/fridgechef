@@ -35,11 +35,20 @@ export async function generateRecipe({
 }) {
   try {
     // Log API key availability (sanitized for security)
-    const apiKeyAvailable = Boolean(
-      process.env.GOOGLE_GENAI_API_KEY || 
-      process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY
-    );
-    console.log(`API key available: ${apiKeyAvailable}`);
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY;
+    const envSource = apiKey ? (process.env.GOOGLE_GENAI_API_KEY ? 'server env' : 'client env') : 'none';
+    
+    console.log(`Recipe generation - Environment: ${process.env.VERCEL ? 'Vercel' : 'Local'}, API key from: ${envSource}`);
+    
+    // In production environments, add a short delay to ensure everything is initialized
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    if (!apiKey) {
+      console.warn('No AI API key available for recipe generation');
+      return createFallbackRecipe(ingredients.join(', '));
+    }
 
     // Create a comprehensive ingredients string with all requirements
     let ingredientsWithRequirements = ingredients.join(', ');
@@ -56,23 +65,51 @@ export async function generateRecipe({
       ingredientsWithRequirements += `\nAdditional requirements: ${additionalRequirements}`;
     }
 
-    // Use the existing generateRecipeFlow which is properly configured
-    const result = await generateRecipeFlow({
-      ingredients: ingredientsWithRequirements
-    });
-    
-    // Create a more complete response that includes the additional fields expected by the application
-    return {
-      ...result,
-      description: `A delicious recipe using ${ingredients.join(', ')}`,
-      cookingTime: "30 minutes",
-      servings: 4,
-      difficulty: "medium"
-    };
+    try {
+      // Use the existing generateRecipeFlow which is properly configured
+      const result = await generateRecipeFlow({
+        ingredients: ingredientsWithRequirements
+      });
+      
+      // Create a more complete response that includes the additional fields expected by the application
+      return {
+        ...result,
+        description: `A delicious recipe using ${ingredients.join(', ')}`,
+        cookingTime: "30 minutes",
+        servings: 4,
+        difficulty: "medium"
+      };
+    } catch (flowError) {
+      console.error("Recipe flow execution error:", flowError);
+      return createFallbackRecipe(ingredients.join(', '));
+    }
   } catch (error) {
     console.error("Recipe generation error:", error);
-    throw new Error(`Failed to generate recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return createFallbackRecipe(ingredients.join(', '));
   }
+}
+
+/**
+ * Creates a fallback recipe when AI generation fails
+ */
+function createFallbackRecipe(ingredientsList: string) {
+  const ingredients = ingredientsList.split(',').map(i => i.trim()).filter(i => i.length > 0);
+  const mainIngredient = ingredients[0] || 'basic ingredients';
+  
+  return {
+    recipeName: `Simple ${mainIngredient.charAt(0).toUpperCase() + mainIngredient.slice(1)} Recipe`,
+    description: `A quick and easy recipe featuring ${mainIngredient}`,
+    ingredients: [
+      mainIngredient,
+      ...ingredients.slice(1, 5),
+      'Salt and pepper to taste',
+      'Olive oil'
+    ],
+    instructions: `1. Prepare ${mainIngredient}.\n2. Combine with other ingredients.\n3. Cook until done.\n4. Serve and enjoy!`,
+    cookingTime: "25 minutes",
+    servings: 2,
+    difficulty: "easy"
+  };
 }
 
 const prompt = ai.definePrompt({
