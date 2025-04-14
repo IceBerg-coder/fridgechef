@@ -113,7 +113,22 @@ export default function CombinedRecipeGenerator() {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
+      // Properly format ingredients and ensure it's a clean string
+      const cleanIngredients = ingredients.trim();
+      
+      if (cleanIngredients.length === 0) {
+        toast({
+          title: "Please enter some ingredients!",
+          description: "You need to provide ingredients to generate a recipe.",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Starting recipe generation with ingredients:", cleanIngredients);
+      
       // Combine user allergies with additional notes if using personal preferences
       let combinedNotes = additionalNotes;
       if (usePersonalPreferences && userPreferences.allergies && !additionalNotes.includes(userPreferences.allergies)) {
@@ -123,7 +138,7 @@ export default function CombinedRecipeGenerator() {
       }
 
       const result = await combinedRecipeGenerator({ 
-        ingredients,
+        ingredients: cleanIngredients,  // Pass as string, the function now handles both formats
         mode: generatorMode,
         count: generatorMode === 'multiple' ? count : undefined,
         dietaryPreferences: dietaryPreferences || undefined,
@@ -143,6 +158,7 @@ export default function CombinedRecipeGenerator() {
       setActiveRecipeIndex(0); // Reset to first recipe
     } catch (error: any) {
       console.error("Error generating recipe:", error);
+      setError(error.message || "An unexpected error occurred while generating your recipe.");
       toast({
         title: "Error generating recipe",
         description: error.message || "Failed to generate a recipe. Please try again.",

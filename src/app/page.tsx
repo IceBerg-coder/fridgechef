@@ -36,12 +36,10 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      // Convert the comma-separated string to an array
-      const ingredientsArray = ingredients.split(',').map(item => item.trim()).filter(Boolean);
-      
-      // Pass the ingredients array to the generateRecipe function
+      // Pass ingredients as a string directly to the generate recipe function
+      // The function now can handle both string and array formats
       const result = await generateRecipe({ 
-        ingredients: ingredientsArray
+        ingredients: ingredients.trim()
       });
       
       // Enhance the recipe with additional fields for better UI display

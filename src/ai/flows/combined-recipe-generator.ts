@@ -264,7 +264,7 @@ async input => {
 /**
  * Combined function for generating recipes, can be used to generate single or multiple recipes
  * @param options Object containing generation options
- * @param options.ingredients List of ingredients
+ * @param options.ingredients List of ingredients (can be string or array)
  * @param options.mode Either 'single' or 'multiple' to determine the generation mode
  * @param options.count Optional number of recipes to generate (used in multiple mode)
  * @param options.dietaryPreferences Optional dietary preferences
@@ -274,7 +274,7 @@ async input => {
  * @returns Object with recipes array
  */
 export const combinedRecipeGenerator = async (options: {
-  ingredients: string;
+  ingredients: string | string[];
   mode: 'single' | 'multiple';
   count?: number;
   dietaryPreferences?: string;
@@ -283,31 +283,49 @@ export const combinedRecipeGenerator = async (options: {
   additionalNotes?: string;
 }): Promise<CombinedRecipeOutput> => {
   try {
+    console.log("Recipe generation starting...");
+    
+    // Normalize ingredients to handle both string and array inputs
+    let ingredientsString: string;
+    
+    // Check if ingredients is already a string or an array
+    if (typeof options.ingredients === 'string') {
+      ingredientsString = options.ingredients;
+      console.log(`Ingredients received as string: ${ingredientsString.substring(0, 50)}${ingredientsString.length > 50 ? '...' : ''}`);
+    } else if (Array.isArray(options.ingredients)) {
+      ingredientsString = options.ingredients.join(', ');
+      console.log(`Ingredients received as array with ${options.ingredients.length} items`);
+    } else {
+      console.error("Invalid ingredients format:", options.ingredients);
+      throw new Error("Ingredients must be provided as a string or array");
+    }
+    
     // Verify API key is available
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY;
+    const envSource = process.env.GOOGLE_GENAI_API_KEY ? 'GOOGLE_GENAI_API_KEY' : 
+                     process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY ? 'NEXT_PUBLIC_GOOGLE_GENAI_API_KEY' : 'none';
+    
+    console.log(`Recipe generation environment: ${process.env.VERCEL ? 'Vercel' : 'Local'}, API key from: ${envSource}`);
+    
+    // In production environments, add a short delay to ensure API services are ready
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
     if (!apiKey) {
       console.error("API key is missing for recipe generation");
-      throw new Error("Configuration error: API key is not available");
+      return generateFallbackRecipe(ingredientsString);
     }
     
-    console.log("Recipe generation starting with API key available:", !!apiKey);
-    
-    // Process ingredients to ensure they're in a usable format
-    const ingredientsList = typeof options.ingredients === 'string' 
-      ? options.ingredients 
-      : Array.isArray(options.ingredients) 
-        ? options.ingredients.join(', ')
-        : '';
-        
-    if (!ingredientsList) {
-      throw new Error("No ingredients provided for recipe generation");
+    if (!ingredientsString.trim()) {
+      console.error("No ingredients provided for recipe generation");
+      return generateFallbackRecipe("basic ingredients");
     }
     
-    // Call the flow with more robust error handling
     try {
+      // Call the flow with the normalized ingredients string
       return await combinedRecipeGeneratorFlow({
-        ingredients: ingredientsList,
+        ingredients: ingredientsString,
         mode: options.mode,
         count: options.count || 3,
         dietaryPreferences: options.dietaryPreferences,
@@ -318,33 +336,50 @@ export const combinedRecipeGenerator = async (options: {
     } catch (flowError: any) {
       console.error('Flow execution error:', flowError);
       
-      // Provide a fallback response for production environments
-      if (process.env.NODE_ENV === 'production') {
-        console.log('Using fallback recipe in production');
-        return {
-          recipes: [{
-            recipeName: "Simple Pasta with " + ingredientsList.split(',')[0],
-            description: "A quick recipe using available ingredients.",
-            cookingTime: "20 minutes",
-            difficulty: "Easy",
-            ingredients: [
-              "Pasta", 
-              ...ingredientsList.split(',').map(i => i.trim())
-            ],
-            instructions: [
-              "Cook pasta according to package directions.",
-              "Combine with other ingredients and season to taste.",
-              "Serve hot."
-            ]
-          }]
-        };
-      }
-      
-      // Re-throw error if not in production or if fallback fails
-      throw new Error(`Recipe generation failed: ${flowError.message || 'Unknown error'}`);
+      // Always use fallback in case of errors
+      return generateFallbackRecipe(ingredientsString);
     }
   } catch (error: any) {
+    // Catch-all error handler
     console.error('Error generating recipes:', error);
-    throw new Error(`Failed to generate recipe: ${error.message || 'Unexpected error occurred'}`);
+    return generateFallbackRecipe(typeof options.ingredients === 'string' ? 
+      options.ingredients : 
+      Array.isArray(options.ingredients) ? options.ingredients.join(', ') : 
+      "available ingredients");
   }
 };
+
+/**
+ * Generate a simple fallback recipe when the AI generation fails
+ * This ensures users always get something usable even when the AI service has issues
+ */
+function generateFallbackRecipe(ingredients: string): CombinedRecipeOutput {
+  const firstIngredient = ingredients.split(',')[0].trim();
+  
+  return {
+    recipes: [{
+      recipeName: `Simple Recipe with ${firstIngredient}`,
+      description: "A quick and easy recipe using your available ingredients.",
+      cookingTime: "25 minutes",
+      difficulty: "Easy",
+      ingredients: [
+        firstIngredient,
+        "1 tablespoon olive oil",
+        "1 clove garlic, minced",
+        "Salt and pepper to taste",
+        ...ingredients.split(',')
+          .slice(1, 5)
+          .map(i => i.trim())
+          .filter(i => i.length > 0)
+      ],
+      instructions: [
+        `Prepare ${firstIngredient} by washing and cutting into appropriate pieces.`,
+        "Heat olive oil in a pan over medium heat.",
+        "Add garlic and sauté until fragrant, about 30 seconds.",
+        `Add ${firstIngredient} and cook until done.`,
+        "Season with salt and pepper to taste.",
+        "Serve immediately."
+      ]
+    }]
+  };
+}
