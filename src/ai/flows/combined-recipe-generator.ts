@@ -283,18 +283,68 @@ export const combinedRecipeGenerator = async (options: {
   additionalNotes?: string;
 }): Promise<CombinedRecipeOutput> => {
   try {
-    // Call the flow directly as a function, just like in the other working examples
-    return combinedRecipeGeneratorFlow({
-      ingredients: options.ingredients,
-      mode: options.mode,
-      count: options.count || 3,
-      dietaryPreferences: options.dietaryPreferences,
-      cuisineType: options.cuisineType,
-      difficultyLevel: options.difficultyLevel,
-      additionalNotes: options.additionalNotes,
-    });
-  } catch (error) {
+    // Verify API key is available
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY;
+    
+    if (!apiKey) {
+      console.error("API key is missing for recipe generation");
+      throw new Error("Configuration error: API key is not available");
+    }
+    
+    console.log("Recipe generation starting with API key available:", !!apiKey);
+    
+    // Process ingredients to ensure they're in a usable format
+    const ingredientsList = typeof options.ingredients === 'string' 
+      ? options.ingredients 
+      : Array.isArray(options.ingredients) 
+        ? options.ingredients.join(', ')
+        : '';
+        
+    if (!ingredientsList) {
+      throw new Error("No ingredients provided for recipe generation");
+    }
+    
+    // Call the flow with more robust error handling
+    try {
+      return await combinedRecipeGeneratorFlow({
+        ingredients: ingredientsList,
+        mode: options.mode,
+        count: options.count || 3,
+        dietaryPreferences: options.dietaryPreferences,
+        cuisineType: options.cuisineType,
+        difficultyLevel: options.difficultyLevel,
+        additionalNotes: options.additionalNotes,
+      });
+    } catch (flowError: any) {
+      console.error('Flow execution error:', flowError);
+      
+      // Provide a fallback response for production environments
+      if (process.env.NODE_ENV === 'production') {
+        console.log('Using fallback recipe in production');
+        return {
+          recipes: [{
+            recipeName: "Simple Pasta with " + ingredientsList.split(',')[0],
+            description: "A quick recipe using available ingredients.",
+            cookingTime: "20 minutes",
+            difficulty: "Easy",
+            ingredients: [
+              "Pasta", 
+              ...ingredientsList.split(',').map(i => i.trim())
+            ],
+            instructions: [
+              "Cook pasta according to package directions.",
+              "Combine with other ingredients and season to taste.",
+              "Serve hot."
+            ]
+          }]
+        };
+      }
+      
+      // Re-throw error if not in production or if fallback fails
+      throw new Error(`Recipe generation failed: ${flowError.message || 'Unknown error'}`);
+    }
+  } catch (error: any) {
     console.error('Error generating recipes:', error);
-    throw error;
+    throw new Error(`Failed to generate recipe: ${error.message || 'Unexpected error occurred'}`);
   }
 };
