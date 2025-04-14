@@ -128,6 +128,7 @@ export default function CombinedRecipeGenerator() {
       }
       
       console.log("Starting recipe generation with ingredients:", cleanIngredients);
+      console.log("Mode:", generatorMode);
       
       // Combine user allergies with additional notes if using personal preferences
       let combinedNotes = additionalNotes;
@@ -137,13 +138,13 @@ export default function CombinedRecipeGenerator() {
           : `Please avoid these allergens: ${userPreferences.allergies}`;
       }
 
+      // FIXED: Ensure single mode always has a count of 1 to prevent server-side errors
       const result = await combinedRecipeGenerator({ 
-        ingredients: cleanIngredients,  // Pass as string, the function now handles both formats
+        ingredients: cleanIngredients,
         mode: generatorMode,
-        count: generatorMode === 'multiple' ? count : undefined,
-        dietaryPreferences: dietaryPreferences || undefined,
-        // Include advanced options when available
-        cuisineType: cuisineType || undefined,
+        count: generatorMode === 'multiple' ? count : 1, // Always set count=1 for single mode
+        dietaryPreferences: dietaryPreferences && dietaryPreferences !== 'none' ? dietaryPreferences : undefined,
+        cuisineType: cuisineType && cuisineType !== 'any' ? cuisineType : undefined,
         difficultyLevel: difficultyLevel || undefined,
         additionalNotes: combinedNotes || undefined
       });
@@ -153,6 +154,10 @@ export default function CombinedRecipeGenerator() {
         ...recipe,
         id: uuidv4()  // Generate a unique ID for each recipe
       }));
+      
+      if (recipesWithIds.length === 0) {
+        throw new Error("No recipes were generated. Please try again with different ingredients.");
+      }
       
       setRecipes(recipesWithIds);
       setActiveRecipeIndex(0); // Reset to first recipe
