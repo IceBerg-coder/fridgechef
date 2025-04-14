@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,25 +14,25 @@ body {
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 140 50% 50%; /* Shades of green */
+    --primary: 142 76% 36%; /* Enhanced green */
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 25 100% 94%;  /* Warm peach/orange secondary */
+    --secondary-foreground: 20 80% 25%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
     --accent: 83 56% 76%; /* Yellow-green (#B0E293) */
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 20 10% 85%;
+    --input: 20 10% 85%;
+    --ring: 142 76% 36%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 0.6rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -43,26 +42,27 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 140 50% 50%; /* Shades of green */
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --background: 20 14% 8%;
+    --foreground: 30 10% 92%;
+    --card: 20 14% 10%;
+    --card-foreground: 30 10% 92%;
+    --popover: 20 14% 10%;
+    --popover-foreground: 30 10% 92%;
+    --primary: 142 70% 40%; 
+    --primary-foreground: 0 0% 98%;
+    --secondary: 25 70% 33%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 83 56% 76%; /* Yellow-green (#B0E293) */
+    --muted: 20 10% 20%;
+    --muted-foreground: 30 10% 70%;
+    --accent: 83 50% 45%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 20 14% 20%;
+    --input: 20 14% 20%;
+    --ring: 142 70% 40%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -80,12 +80,139 @@ body {
 }
 
 @layer base {
+  /* Add smooth theme transition */
+  * {
+    @apply transition-colors duration-200;
+  }
+
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
+  
+  h1, h2, h3, h4, h5 {
+    @apply font-playfair font-bold;
+  }
+  
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl leading-tight;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl leading-snug;
+  }
+  
+  h3 {
+    @apply text-xl md:text-2xl leading-snug;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes subtle-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s infinite;
+}
+
+.animate-float {
+  animation: subtle-float 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Typography */
+.font-playfair {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.font-sans {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Cards and containers */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30;
+}
+
+.shadow-recipe {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+
+.frosted-glass {
+  @apply backdrop-blur-md bg-white/80 dark:bg-black/40;
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: var(--radius);
+  background: linear-gradient(to right, var(--primary), var(--accent));
+  padding: 1px;
+}
+
+.gradient-border > * {
+  border-radius: calc(var(--radius) - 1px);
+}
+
+/* Food-themed accent colors */
+.bg-tomato {
+  background-color: hsl(10, 80%, 60%);
+}
+
+.bg-olive {
+  background-color: hsl(86, 25%, 40%);
+}
+
+.bg-butter {
+  background-color: hsl(45, 90%, 85%);
+}
+
+.bg-herb {
+  background-color: hsl(125, 40%, 50%);
+}
+
+/* Button enhancements */
+.btn-recipe {
+  @apply bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg hover:from-primary/95 hover:to-primary transition-all duration-300;
 }
 
 

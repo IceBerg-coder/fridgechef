@@ -11,8 +11,8 @@ import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
 
 const RefineRecipeInputSchema = z.object({
-  recipe: z.string().describe('The recipe to refine.'),
-  instructions: z.string().describe('Instructions on how to refine the recipe, including cooking time, spice level, or other details.'),
+  recipeText: z.string().describe('The recipe to refine.'),
+  improvementRequest: z.string().describe('Instructions on how to refine the recipe, including cooking time, spice level, or other details.'),
 });
 export type RefineRecipeInput = z.infer<typeof RefineRecipeInputSchema>;
 
@@ -21,6 +21,11 @@ const RefineRecipeOutputSchema = z.object({
 });
 export type RefineRecipeOutput = z.infer<typeof RefineRecipeOutputSchema>;
 
+export async function improveRecipe(input: RefineRecipeInput): Promise<RefineRecipeOutput> {
+  return refineRecipeFlow(input);
+}
+
+// Keeping the original function for backward compatibility
 export async function refineRecipe(input: RefineRecipeInput): Promise<RefineRecipeOutput> {
   return refineRecipeFlow(input);
 }
@@ -57,6 +62,13 @@ const refineRecipeFlow = ai.defineFlow<
   inputSchema: RefineRecipeInputSchema,
   outputSchema: RefineRecipeOutputSchema,
 },async input => {
-  const {output} = await prompt(input);
-  return output!;
+  // Map the input from recipeText/improvementRequest to recipe/instructions
+  const promptInput = {
+    recipe: input.recipeText,
+    instructions: input.improvementRequest
+  };
+  const {output} = await prompt(promptInput);
+  return {
+    refinedRecipe: output!.refinedRecipe
+  };
 });

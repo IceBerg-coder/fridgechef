@@ -1,6 +1,7 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
+// Create the genkit instance with Google AI provider
 export const ai = genkit({
   promptDir: './prompts',
   plugins: [
