@@ -7,8 +7,10 @@ generator client {
 
 // Use SQLite for local development and PostgreSQL for Vercel deployment
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // If DATABASE_URL environment variable is not set, use this direct connection URL
+  // directUrl = env("POSTGRES_URL_NON_POOLING") // Used for migrations
 }
 
 // User model for authentication and personalization

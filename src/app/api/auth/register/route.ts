@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcrypt';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma'; // Import the shared Prisma client instance
 
 // Define the validation schema for registration
 const registerSchema = z.object({
