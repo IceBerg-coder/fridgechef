@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
 import { z } from 'zod';
-import prisma from '@/lib/prisma'; // Import the shared Prisma client instance
+import prisma from '@/lib/prisma';
+import { isUsingNeonDatabase } from '@/lib/db-config';
+import { getUserByEmail, fetchNeonData } from '@/lib/neon-db';
+import { randomUUID } from 'crypto';
 
 // Define the validation schema for registration
 const registerSchema = z.object({
@@ -16,44 +19,82 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, email, password } = registerSchema.parse(body);
     
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+    // Determine whether to use Neon Database or Prisma
+    const useNeonDb = isUsingNeonDatabase();
     
-    if (existingUser) {
-      return NextResponse.json(
-        { message: 'User with this email already exists' },
-        { status: 409 }
-      );
+    if (useNeonDb) {
+      // Neon Database path
+      
+      // Check if user already exists
+      const existingUser = await getUserByEmail(email);
+      
+      if (existingUser) {
+        return NextResponse.json(
+          { message: 'User with this email already exists' },
+          { status: 409 }
+        );
+      }
+      
+      // Hash password
+      const hashedPassword = await hash(password, 10);
+      
+      // Create new user with Neon Database
+      const userId = randomUUID();
+      const now = new Date().toISOString();
+      
+      const newUser = await fetchNeonData(`
+        INSERT INTO "User" (id, name, email, password, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, name, email, "createdAt"
+      `, [userId, name, email, hashedPassword, now, now]);
+      
+      // Return success response
+      return NextResponse.json({
+        message: 'User registered successfully',
+        user: newUser[0],
+      }, { status: 201 });
+      
+    } else {
+      // Prisma path (original code)
+      
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      
+      if (existingUser) {
+        return NextResponse.json(
+          { message: 'User with this email already exists' },
+          { status: 409 }
+        );
+      }
+      
+      // Hash password
+      const hashedPassword = await hash(password, 10);
+      
+      // Create new user
+      const newUser = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+      });
+      
+      // Return success response
+      return NextResponse.json({
+        message: 'User registered successfully',
+        user: newUser,
+      }, { status: 201 });
     }
-    
-    // Hash password
-    const hashedPassword = await hash(password, 10);
-    
-    // Create new user
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-      },
-    });
-    
-    // Return success response
-    return NextResponse.json({
-      message: 'User registered successfully',
-      user: newUser,
-    }, { status: 201 });
-    
   } catch (error: any) {
     console.error('Registration error:', error);
     
