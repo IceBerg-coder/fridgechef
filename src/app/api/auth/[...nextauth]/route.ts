@@ -2,6 +2,8 @@ import NextAuth, { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaClient } from '@prisma/client';
 import { compare } from 'bcrypt';
+import { isUsingNeonDatabase } from '@/lib/db-config';
+import { getUserByEmail, queryNeon } from '@/lib/neon-db';
 
 const prisma = new PrismaClient();
 
@@ -22,25 +24,60 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Missing email or password');
         }
 
-        // Find user by email
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+        // Check if using Neon Database
+        const useNeonDb = isUsingNeonDatabase();
+        
+        if (useNeonDb) {
+          try {
+            // Find user by email in Neon Database
+            const user = await getUserByEmail(credentials.email);
+            
+            if (!user) {
+              console.log('User not found in Neon Database');
+              throw new Error('Invalid email or password');
+            }
+            
+            // Compare passwords
+            const passwordMatch = await compare(credentials.password, user.password);
+            if (!passwordMatch) {
+              console.log('Password does not match');
+              throw new Error('Invalid email or password');
+            }
+            
+            // Return user without password
+            return {
+              id: user.id,
+              name: user.name || undefined,
+              email: user.email,
+              image: user.image || undefined,
+            };
+            
+          } catch (error) {
+            console.error('Error authenticating with Neon Database:', error);
+            throw new Error('Authentication failed');
+          }
+        } else {
+          // Original Prisma authentication path
+          // Find user by email
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
 
-        // If no user found or password doesn't match
-        if (!user || !(await compare(credentials.password, user.password))) {
-          throw new Error('Invalid email or password');
+          // If no user found or password doesn't match
+          if (!user || !(await compare(credentials.password, user.password))) {
+            throw new Error('Invalid email or password');
+          }
+
+          // Return user without password
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          };
         }
-
-        // Return user without password
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
       },
     }),
   ],

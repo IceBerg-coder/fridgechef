@@ -2,7 +2,7 @@
  * Neon Database setup and migration script
  * 
  * Usage:
- *   ts-node scripts/neon-db-setup.ts
+ *   npm run setup-neon-db
  * 
  * This script will:
  * 1. Test connection to the Neon Database
@@ -11,9 +11,35 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { getDatabaseUrl, isUsingNeonDatabase } from '../src/lib/db-config';
+import { config } from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env file
+config({ path: path.resolve(__dirname, '../.env') });
+
+/**
+ * Check if Neon Database is configured
+ */
+function isUsingNeonDatabase(): boolean {
+  return Boolean(process.env.NEON_DATABASE_URL);
+}
+
+/**
+ * Returns the appropriate database URL
+ */
+function getDatabaseUrl(): string {
+  // Use Neon Database if configured
+  if (process.env.NEON_DATABASE_URL) {
+    return process.env.NEON_DATABASE_URL;
+  }
+  
+  // Fall back to Postgres or SQLite
+  if (process.env.POSTGRES_URL || process.env.DATABASE_URL) {
+    return process.env.POSTGRES_URL || process.env.DATABASE_URL || '';
+  }
+  
+  throw new Error('No database URL configured. Please set NEON_DATABASE_URL in your .env file.');
+}
 
 async function main() {
   // Ensure Neon Database URL is configured
@@ -30,7 +56,7 @@ async function main() {
   
   try {
     // Test connection
-    const testResult = await sql`SELECT version();`;
+    const testResult = await sql`SELECT version()`;
     console.log(`✅ Connected to PostgreSQL ${testResult[0].version}`);
 
     // Create tables based on Prisma schema
@@ -48,7 +74,7 @@ async function main() {
       "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "dietaryPreferences" TEXT,
       "allergies" TEXT
-    );`;
+    )`;
     console.log('✅ User table created or already exists');
 
     // Recipe table
@@ -68,7 +94,7 @@ async function main() {
       "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "userId" TEXT NOT NULL,
       FOREIGN KEY ("userId") REFERENCES "User"(id) ON DELETE CASCADE
-    );`;
+    )`;
     console.log('✅ Recipe table created or already exists');
 
     // Collection table
@@ -81,7 +107,7 @@ async function main() {
       "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "userId" TEXT NOT NULL,
       FOREIGN KEY ("userId") REFERENCES "User"(id) ON DELETE CASCADE
-    );`;
+    )`;
     console.log('✅ Collection table created or already exists');
 
     // Create junction tables for many-to-many relationships
@@ -92,7 +118,7 @@ async function main() {
       FOREIGN KEY ("A") REFERENCES "User"(id) ON DELETE CASCADE,
       FOREIGN KEY ("B") REFERENCES "Recipe"(id) ON DELETE CASCADE,
       UNIQUE("A", "B")
-    );`;
+    )`;
     console.log('✅ _UserFavorites junction table created or already exists');
 
     await sql`
@@ -102,16 +128,16 @@ async function main() {
       FOREIGN KEY ("A") REFERENCES "Collection"(id) ON DELETE CASCADE,
       FOREIGN KEY ("B") REFERENCES "Recipe"(id) ON DELETE CASCADE,
       UNIQUE("A", "B")
-    );`;
+    )`;
     console.log('✅ _CollectionRecipes junction table created or already exists');
     
     // Create indexes for better performance
-    await sql`CREATE INDEX IF NOT EXISTS "Recipe_userId_idx" ON "Recipe"("userId");`;
-    await sql`CREATE INDEX IF NOT EXISTS "Collection_userId_idx" ON "Collection"("userId");`;
-    await sql`CREATE INDEX IF NOT EXISTS "UserFavorites_A_idx" ON "_UserFavorites"("A");`;
-    await sql`CREATE INDEX IF NOT EXISTS "UserFavorites_B_idx" ON "_UserFavorites"("B");`;
-    await sql`CREATE INDEX IF NOT EXISTS "CollectionRecipes_A_idx" ON "_CollectionRecipes"("A");`;
-    await sql`CREATE INDEX IF NOT EXISTS "CollectionRecipes_B_idx" ON "_CollectionRecipes"("B");`;
+    await sql`CREATE INDEX IF NOT EXISTS "Recipe_userId_idx" ON "Recipe"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS "Collection_userId_idx" ON "Collection"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS "UserFavorites_A_idx" ON "_UserFavorites"("A")`;
+    await sql`CREATE INDEX IF NOT EXISTS "UserFavorites_B_idx" ON "_UserFavorites"("B")`;
+    await sql`CREATE INDEX IF NOT EXISTS "CollectionRecipes_A_idx" ON "_CollectionRecipes"("A")`;
+    await sql`CREATE INDEX IF NOT EXISTS "CollectionRecipes_B_idx" ON "_CollectionRecipes"("B")`;
     console.log('✅ Created performance indexes');
     
     console.log('🎉 Database setup complete!');

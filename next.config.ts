@@ -24,7 +24,11 @@ const nextConfig = {
   },
   // Enable server actions for Vercel deployment
   experimental: {
-    serverActions: true, // Enable server actions for Vercel
+    // Server Actions have been updated in Next.js 15.x
+    serverActions: {
+      bodySizeLimit: '2mb',
+      allowedOrigins: ['localhost:9002', '.app.github.dev'],
+    },
   },
   // Remove trailingSlash setting which is for static exports
   // trailingSlash: true,

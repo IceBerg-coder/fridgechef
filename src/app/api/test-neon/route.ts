@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { testNeonConnection, fetchNeonData } from '@/lib/neon-db';
+import { testNeonConnection, queryNeon } from '@/lib/neon-db';
 import { isUsingNeonDatabase } from '@/lib/db-config';
 
 /**
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Run a simple query to verify functionality
-    const result = await fetchNeonData('SELECT version();');
+    const result = await queryNeon`SELECT version()`;
     
     return NextResponse.json({
       success: true,

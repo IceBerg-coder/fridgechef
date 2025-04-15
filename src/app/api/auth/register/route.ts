@@ -3,7 +3,7 @@ import { hash } from 'bcrypt';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { isUsingNeonDatabase } from '@/lib/db-config';
-import { getUserByEmail, fetchNeonData } from '@/lib/neon-db';
+import { getUserByEmail, queryNeon } from '@/lib/neon-db';
 import { randomUUID } from 'crypto';
 
 // Define the validation schema for registration
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       const userId = randomUUID();
       const now = new Date().toISOString();
       
-      const newUser = await fetchNeonData(`
+      const newUser = await queryNeon`
         INSERT INTO "User" (id, name, email, password, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES (${userId}, ${name}, ${email}, ${hashedPassword}, ${now}, ${now})
         RETURNING id, name, email, "createdAt"
-      `, [userId, name, email, hashedPassword, now, now]);
+      `;
       
       // Return success response
       return NextResponse.json({
