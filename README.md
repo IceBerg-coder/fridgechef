@@ -17,9 +17,9 @@ FridgeChef is a Next.js application that helps users generate recipe ideas based
 - **Frontend**: Next.js with TypeScript and Tailwind CSS
 - **UI Components**: Shadcn/UI component library
 - **Backend**: Next.js API routes with server components
-- **Database**: Prisma with SQLite
+- **Database**: Supports both Prisma with PostgreSQL and direct Neon Database connection
 - **Authentication**: NextAuth.js
-- **AI Integration**: Custom AI flows for recipe generation and enhancement
+- **AI Integration**: OpenAI and Anthropic for recipe generation and enhancement
 - **Testing**: Jest for component and integration testing
 
 ## Getting Started
@@ -41,10 +41,17 @@ FridgeChef is a Next.js application that helps users generate recipe ideas based
    ```
    Edit `.env.local` to add your API keys and database configuration
 
-4. Initialize and seed the database:
+4. Database setup (choose one option):
+
+   **Option 1: Using Prisma with PostgreSQL**
    ```
    npx prisma migrate dev --name init
    npx prisma db seed
+   ```
+
+   **Option 2: Using Neon Database directly**
+   ```
+   npm run setup:neon
    ```
 
 5. Run the development server:
@@ -53,6 +60,22 @@ FridgeChef is a Next.js application that helps users generate recipe ideas based
    ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Environment Variables
+
+### Required Environment Variables
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Secret for NextAuth session encryption
+- `NEXTAUTH_URL`: Your application URL (http://localhost:3000 for development)
+- `OPENAI_API_KEY`: OpenAI API key for recipe generation
+
+### Optional Environment Variables
+
+- `ANTHROPIC_API_KEY`: Alternative AI provider for recipe generation
+- `USE_NEON_DATABASE`: Set to "true" to use Neon Database directly instead of Prisma
+- `POSTGRES_URL`: Pooled connection URL for Vercel Postgres (if using Vercel deployment)
+- `POSTGRES_URL_NON_POOLING`: Direct connection URL for migrations
 
 ## Project Structure
 
@@ -63,6 +86,7 @@ FridgeChef is a Next.js application that helps users generate recipe ideas based
 - `/src/lib`: Utility functions and helpers
 - `/prisma`: Database schema and migrations
 - `/docs`: Project documentation and blueprints
+- `/scripts`: Utility scripts for database setup and testing
 
 ## Available Scripts
 
@@ -71,22 +95,24 @@ FridgeChef is a Next.js application that helps users generate recipe ideas based
 - `npm start`: Start the production server
 - `npm test`: Run tests
 - `npm run lint`: Lint the codebase
+- `npm run setup:neon`: Set up Neon Database schema
+- `npm run verify:api-key`: Verify AI API key configuration
 
 ## API Routes
 
 - `/api/recipes`: Recipe CRUD operations
 - `/api/auth`: Authentication endpoints
-- `/api/user`: User profile management
+- `/api/user`: User profile and preferences management
 - `/api/collections`: Recipe collection management
 
-## Deployment
+## Deployment to Vercel
 
-The application can be deployed to Vercel with minimal configuration:
+The application can be deployed to Vercel with the following steps:
 
-```bash
-npm install -g vercel
-vercel
-```
+1. Push your repository to GitHub
+2. Import the repository in Vercel
+3. Configure the required environment variables in Vercel project settings
+4. Deploy the application
 
 ## Contributing
 
@@ -107,3 +133,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Thanks to all contributors who have helped make FridgeChef better
 - Shadcn/UI for the beautiful component library
 - Next.js team for the amazing framework
+- Neon Database for serverless Postgres
